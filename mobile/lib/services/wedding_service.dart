@@ -27,12 +27,24 @@ class WeddingService {
     return _client.post('/wedding-plans/$planId/guests', payload);
   }
 
+  Future<Map<String, dynamic>> updateGuest(int planId, int guestId, Map<String, dynamic> payload) async {
+    return _client.put('/wedding-plans/$planId/guests/$guestId', payload);
+  }
+
+  Future<Map<String, dynamic>> sendGuestInvitation(int planId, int guestId) async {
+    return _client.post('/wedding-plans/$planId/guests/$guestId/invite', {});
+  }
+
   Future<Map<String, dynamic>> budgetItems(int planId) async {
     return _client.get('/wedding-plans/$planId/budget-items');
   }
 
   Future<Map<String, dynamic>> addBudgetItem(int planId, Map<String, dynamic> payload) async {
     return _client.post('/wedding-plans/$planId/budget-items', payload);
+  }
+
+  Future<Map<String, dynamic>> updateBudgetItem(int planId, int itemId, Map<String, dynamic> payload) async {
+    return _client.put('/wedding-plans/$planId/budget-items/$itemId', payload);
   }
 
   Future<List<dynamic>> tasks(int planId) async {

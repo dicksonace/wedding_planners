@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\AuthorizesCouple;
 use App\Models\AppNotification;
 use App\Models\Vendor;
 use App\Models\VendorRequest;
@@ -12,8 +13,11 @@ use Illuminate\Http\Request;
 
 class VendorRequestController extends Controller
 {
+    use AuthorizesCouple;
+
     public function index(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
 
         $requests = $weddingPlan->vendorRequests()->with('vendor.user')->latest()->get();
@@ -23,6 +27,7 @@ class VendorRequestController extends Controller
 
     public function store(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
 
         $validated = $request->validate([
@@ -79,7 +84,7 @@ class VendorRequestController extends Controller
 
         return response()->json([
             'message' => 'Response submitted successfully.',
-            'data' => $vendorRequest->fresh()->load('vendor.user'),
+            'data' => $vendorRequest->fresh()->load(['vendor.user', 'weddingPlan', 'couple']),
         ]);
     }
 

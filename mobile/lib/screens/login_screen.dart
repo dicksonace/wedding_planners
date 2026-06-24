@@ -21,8 +21,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'couple@wedplan.test');
-  final _passwordController = TextEditingController(text: 'password');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _loading = false;
 
   Future<void> _submit() async {
@@ -67,6 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text('Sign in to continue planning your wedding journey.'),
+                const SizedBox(height: 8),
+                const Text(
+                  'Demo: couple@wedplan.test or vendor@wedplan.test (password: password)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,

@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\AuthorizesCouple;
 use App\Models\WeddingPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WeddingPlanController extends Controller
 {
+    use AuthorizesCouple;
+
     public function index(Request $request): JsonResponse
     {
+        $this->authorizeCouple($request);
+
         $plans = $request->user()
             ->weddingPlans()
             ->withCount(['guests', 'tasks', 'budgetItems'])
@@ -22,6 +27,8 @@ class WeddingPlanController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorizeCouple($request);
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'bride_name' => ['nullable', 'string', 'max:255'],
@@ -46,6 +53,7 @@ class WeddingPlanController extends Controller
 
     public function show(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
 
         $weddingPlan->load(['guests', 'budgetItems', 'tasks', 'vendorRequests.vendor']);
@@ -55,6 +63,7 @@ class WeddingPlanController extends Controller
 
     public function update(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
 
         $validated = $request->validate([
@@ -81,6 +90,7 @@ class WeddingPlanController extends Controller
 
     public function destroy(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
         $weddingPlan->delete();
 

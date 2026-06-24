@@ -47,6 +47,7 @@ class AuthController extends Controller
                 'description' => $validated['description'] ?? null,
                 'location' => $validated['location'] ?? null,
                 'phone' => $validated['phone'] ?? null,
+                'is_verified' => true,
             ]);
         }
 

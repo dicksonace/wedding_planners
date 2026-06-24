@@ -8,6 +8,7 @@ use App\Models\Guest;
 use App\Models\PlanningTask;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorRequest;
 use App\Models\VendorService;
 use App\Models\WeddingPlan;
 use Illuminate\Database\Seeder;
@@ -114,6 +115,18 @@ class DemoDataSeeder extends Seeder
                 'wedding_plan_id' => $plan->id,
                 'message' => 'Start planning your wedding journey with culturally relevant tools.',
                 'type' => 'info',
+            ]
+        );
+
+        VendorRequest::updateOrCreate(
+            [
+                'wedding_plan_id' => $plan->id,
+                'vendor_id' => $vendor->id,
+                'couple_id' => $couple->id,
+            ],
+            [
+                'message' => 'We would like decoration services for our traditional and reception ceremonies.',
+                'status' => 'pending',
             ]
         );
     }

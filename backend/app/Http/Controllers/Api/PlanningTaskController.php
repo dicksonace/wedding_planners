@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Concerns\AuthorizesCouple;
 use App\Models\PlanningTask;
 use App\Models\WeddingPlan;
 use Illuminate\Http\JsonResponse;
@@ -10,8 +11,11 @@ use Illuminate\Http\Request;
 
 class PlanningTaskController extends Controller
 {
+    use AuthorizesCouple;
+
     public function index(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
 
         return response()->json(['data' => $weddingPlan->tasks()->orderBy('due_date')->get()]);
@@ -19,6 +23,7 @@ class PlanningTaskController extends Controller
 
     public function store(Request $request, WeddingPlan $weddingPlan): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
 
         $validated = $request->validate([
@@ -40,6 +45,7 @@ class PlanningTaskController extends Controller
 
     public function update(Request $request, WeddingPlan $weddingPlan, PlanningTask $task): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
         $this->authorizeTask($weddingPlan, $task);
 
@@ -62,6 +68,7 @@ class PlanningTaskController extends Controller
 
     public function destroy(Request $request, WeddingPlan $weddingPlan, PlanningTask $task): JsonResponse
     {
+        $this->authorizeCouple($request);
         $this->authorizePlan($request, $weddingPlan);
         $this->authorizeTask($weddingPlan, $task);
         $task->delete();

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedplan_ghana/models/user.dart';
 import 'package:wedplan_ghana/screens/home_shell.dart';
+import 'package:wedplan_ghana/screens/vendor_home_shell.dart';
 import 'package:wedplan_ghana/screens/login_screen.dart';
 import 'package:wedplan_ghana/screens/register_screen.dart';
 import 'package:wedplan_ghana/screens/splash_screen.dart';
 import 'package:wedplan_ghana/services/api_client.dart';
 import 'package:wedplan_ghana/services/auth_service.dart';
+import 'package:wedplan_ghana/services/vendor_service.dart';
 import 'package:wedplan_ghana/services/wedding_service.dart';
 import 'package:wedplan_ghana/theme/app_theme.dart';
 
@@ -29,6 +31,7 @@ class _WedPlanAppState extends State<WedPlanApp> {
   late final ApiClient _apiClient = ApiClient(widget.prefs);
   late final AuthService _authService = AuthService(_apiClient);
   late final WeddingService _weddingService = WeddingService(_apiClient);
+  late final VendorService _vendorService = VendorService(_apiClient);
 
   User? _user;
   bool _showRegister = false;
@@ -72,12 +75,18 @@ class _WedPlanAppState extends State<WedPlanApp> {
                       onLoggedIn: (user) => setState(() => _user = user),
                       onRegisterTap: () => setState(() => _showRegister = true),
                     )
-              : HomeShell(
-                  user: _user!,
-                  authService: _authService,
-                  weddingService: _weddingService,
-                  onLogout: _logout,
-                ),
+              : _user!.role == 'vendor'
+                  ? VendorHomeShell(
+                      user: _user!,
+                      vendorService: _vendorService,
+                      onLogout: _logout,
+                    )
+                  : HomeShell(
+                      user: _user!,
+                      authService: _authService,
+                      weddingService: _weddingService,
+                      onLogout: _logout,
+                    ),
     );
   }
 }

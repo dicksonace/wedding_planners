@@ -65,6 +65,7 @@ flutter doctor
 ```
 
 If you used **Option C**, add `C:\dev\flutter\bin` to your system **PATH** manually.
+
 | **Git** (optional) | Version control | https://git-scm.com |
 
 Verify installations:
@@ -131,7 +132,7 @@ php artisan key:generate
 php artisan migrate:fresh --seed
 ```
 
-This creates all tables and loads **demo data** (sample couple, vendor, wedding plan, guests, budget items, and tasks).
+This creates all tables and loads **demo data**. See [After seed — all credentials & demo data](#after-seed--all-credentials--demo-data) below for login details and seeded records.
 
 ### Step 5 — Start the API server
 
@@ -309,9 +310,111 @@ flutter run    # with iPhone connected via USB
 
 ---
 
-## Demo Login Accounts
+## After seed — all credentials & demo data
 
-After running `php artisan migrate:fresh --seed`, use these accounts:
+Run this once to load demo data:
+
+```bash
+cd backend
+php artisan migrate:fresh --seed
+```
+
+### Database (XAMPP defaults)
+
+| Setting | Value |
+|---------|-------|
+| Host | `127.0.0.1` |
+| Port | `3306` |
+| Database | `wedplan_ghana` |
+| Username | `root` |
+| Password | *(empty)* |
+
+### App login accounts
+
+| Role | Email | Password | What you see after login |
+|------|-------|----------|--------------------------|
+| **Couple** | `couple@wedplan.test` | `password` | Dashboard, Guests, Budget, Tasks, Vendors |
+| **Vendor** | `vendor@wedplan.test` | `password` | Vendor Portal (requests, accept/decline) |
+
+### API endpoints (local)
+
+| Service | URL |
+|---------|-----|
+| API base | `http://127.0.0.1:8000/api` |
+| Health check | `http://127.0.0.1:8000/api/health` |
+| Guest RSVP page | `http://127.0.0.1:8000/rsvp/{token}` |
+
+### Seeded couple profile
+
+| Field | Value |
+|-------|-------|
+| Name | Ernestina & Partner |
+| Email | `couple@wedplan.test` |
+| Phone | 0244123456 |
+| Partner | Kwame Mensah |
+| Region | Greater Accra |
+
+### Seeded wedding plan
+
+| Field | Value |
+|-------|-------|
+| Title | Our Accra Wedding 2026 |
+| Bride | Ernestina Blankson |
+| Groom | Kwame Mensah |
+| Date | 2026-08-15 |
+| Venue | Accra Conference Centre |
+| Total budget | GHS 50,000 |
+| Ceremonies | knocking, engagement, traditional, church, reception |
+
+### Seeded guests
+
+| Name | Phone | Side | RSVP |
+|------|-------|------|------|
+| Akosua Panford | 0244000111 | bride | confirmed |
+| Yaw Appiah | 0244000222 | groom | pending |
+
+### Seeded budget items
+
+| Category | Description | Planned | Actual | Paid |
+|----------|-------------|---------|--------|------|
+| Venue | Venue booking deposit | GHS 12,000 | GHS 5,000 | Yes |
+| Photography | Photography package | GHS 6,000 | GHS 0 | No |
+
+### Seeded vendor profile
+
+| Field | Value |
+|-------|-------|
+| Business | Golden Events Ghana |
+| Login email | `vendor@wedplan.test` |
+| Category | Decoration |
+| Location | Accra |
+| Phone | 0209876543 |
+| Service | Full Venue Decoration (GHS 8,000 – 25,000) |
+
+### Seeded vendor request (pending)
+
+The couple has already sent a **pending** decoration request to Golden Events Ghana. Log in as `vendor@wedplan.test` to accept or decline it.
+
+### Email invitations (guest RSVP)
+
+- Default mail driver: `log` (emails saved to `backend/storage/logs/laravel.log`, not sent externally).
+- To send real emails, configure SMTP in `backend/.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_username
+MAIL_PASSWORD=your_password
+MAIL_FROM_ADDRESS=hello@wedplan.test
+MAIL_FROM_NAME="WedPlan Ghana"
+```
+
+- Guest invite emails include **Accept** and **Decline** links that update RSVP on the web page.
+
+---
+
+## Demo Login Accounts (quick reference)
 
 | Role | Email | Password |
 |------|-------|----------|
