@@ -1,0 +1,31 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Env & secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Laravel backend
+backend/vendor/
+backend/node_modules/
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/.phpunit.result.cache
+
+# Flutter mobile
+mobile/.dart_tool/
+mobile/.pub/
+mobile/build/
+mobile/.flutter-plugins-dependencies
+
+# SQLite (local dev only)
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
