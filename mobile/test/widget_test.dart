@@ -1,15 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedplan_ghana/main.dart';
+import 'package:wedplan_ghana/store/app_store.dart';
+import 'package:wedplan_ghana/router/app_router.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  testWidgets('App launches splash screen', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-
-    await tester.pumpWidget(WedPlanApp(prefs: prefs));
-    expect(find.text('WedPlan Ghana'), findsOneWidget);
+  testWidgets('App launches login flow', (tester) async {
+    final store = AppStore();
+    final router = AppRouter.create(store);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: store,
+        child: WedPlanApp(router: router),
+      ),
+    );
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    expect(find.text('Welcome back'), findsOneWidget);
   });
 }

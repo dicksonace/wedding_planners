@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\BudgetItemController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\GuestController;
@@ -20,6 +21,7 @@ Route::get('/health', fn () => response()->json([
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/email/resend', [EmailVerificationController::class, 'resend']);
 
 Route::get('/vendors', [VendorController::class, 'index']);
 Route::get('/vendors/categories', [VendorController::class, 'categories']);

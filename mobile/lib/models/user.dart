@@ -1,5 +1,5 @@
-class User {
-  User({
+class AppUser {
+  AppUser({
     required this.id,
     required this.name,
     required this.email,
@@ -17,8 +17,11 @@ class User {
   final String? partnerName;
   final String? region;
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
+  bool get isCouple => role == 'couple';
+  bool get isVendor => role == 'vendor';
+
+  factory AppUser.fromJson(Map<String, dynamic> json) {
+    return AppUser(
       id: json['id'] as int,
       name: json['name'] as String,
       email: json['email'] as String,

@@ -27,6 +27,7 @@ class DemoDataSeeder extends Seeder
                 'phone' => '0244123456',
                 'partner_name' => 'Kwame Mensah',
                 'region' => 'Greater Accra',
+                'email_verified_at' => now(),
             ]
         );
 
@@ -38,6 +39,7 @@ class DemoDataSeeder extends Seeder
                 'role' => 'vendor',
                 'phone' => '0209876543',
                 'region' => 'Greater Accra',
+                'email_verified_at' => now(),
             ]
         );
 

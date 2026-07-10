@@ -25,7 +25,9 @@ class VendorController extends Controller
             $search = $request->string('search');
             $query->where(function ($builder) use ($search) {
                 $builder->where('business_name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%");
             });
         }
 

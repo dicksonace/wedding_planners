@@ -51,12 +51,12 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('mobile-app')->plainTextToken;
+        $user->sendEmailVerificationNotification();
 
         return response()->json([
-            'message' => 'Registration successful.',
-            'user' => $this->formatUser($user->fresh(['vendor'])),
-            'token' => $token,
+            'message' => 'Registration successful. Please check your email to verify your account before signing in.',
+            'email_verification_required' => true,
+            'email' => $user->email,
         ], 201);
     }
 
@@ -73,6 +73,17 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
+
+        if (! $user->hasVerifiedEmail()) {
+            Auth::logout();
+
+            return response()->json([
+                'message' => 'Please verify your email before signing in. Check your inbox for the confirmation link.',
+                'email_verification_required' => true,
+                'email' => $user->email,
+            ], 403);
+        }
+
         $token = $user->createToken('mobile-app')->plainTextToken;
 
         return response()->json([
@@ -106,6 +117,7 @@ class AuthController extends Controller
             'phone' => $user->phone,
             'partner_name' => $user->partner_name,
             'region' => $user->region,
+            'email_verified' => $user->hasVerifiedEmail(),
             'vendor' => $user->vendor,
         ];
     }
