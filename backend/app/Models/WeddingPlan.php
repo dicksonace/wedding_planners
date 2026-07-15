@@ -55,4 +55,9 @@ class WeddingPlan extends Model
     {
         return $this->hasMany(VendorRequest::class);
     }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(WeddingMedia::class);
+    }
 }

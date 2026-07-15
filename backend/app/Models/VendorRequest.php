@@ -14,7 +14,16 @@ class VendorRequest extends Model
         'message',
         'status',
         'response_message',
+        'budget_item_id',
+        'quoted_amount',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'quoted_amount' => 'decimal:2',
+        ];
+    }
 
     public function weddingPlan(): BelongsTo
     {
@@ -29,5 +38,10 @@ class VendorRequest extends Model
     public function couple(): BelongsTo
     {
         return $this->belongsTo(User::class, 'couple_id');
+    }
+
+    public function budgetItem(): BelongsTo
+    {
+        return $this->belongsTo(BudgetItem::class);
     }
 }

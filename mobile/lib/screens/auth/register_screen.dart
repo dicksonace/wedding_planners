@@ -3,9 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/api_client.dart';
+import '../../config/app_images.dart';
 import '../../store/app_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common_widgets.dart';
+import '../../widgets/image_carousel.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -78,13 +80,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        title: const Text('Create Account'),
+        backgroundColor: AppColors.cream,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            ImageCarousel(
+              slides: AppImages.registerSlides,
+              height: 220,
+              blurSigma: 5,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            const SizedBox(height: 18),
             AppCard(
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   Icon(Icons.mark_email_read_outlined, color: AppColors.deepGreen.withValues(alpha: 0.9), size: 28),
@@ -98,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'couple', label: Text('Couple'), icon: Icon(Icons.favorite)),

@@ -107,11 +107,42 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> patch(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final response = await _dio.patch(path, data: body);
+      return _asMap(response.data);
+    } on DioException catch (e) {
+      throw ApiException(e.message ?? 'Request failed', statusCode: e.response?.statusCode);
+    }
+  }
+
   Future<void> delete(String path) async {
     try {
       await _dio.delete(path);
     } on DioException catch (e) {
       throw ApiException(e.message ?? 'Request failed', statusCode: e.response?.statusCode);
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadMultipart(
+    String path, {
+    required String filePath,
+    required String fileField,
+    required Map<String, dynamic> fields,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        ...fields,
+        fileField: await MultipartFile.fromFile(filePath),
+      });
+      final response = await _dio.post(
+        path,
+        data: form,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+      return _asMap(response.data);
+    } on DioException catch (e) {
+      throw ApiException(e.message ?? 'Upload failed', statusCode: e.response?.statusCode);
     }
   }
 

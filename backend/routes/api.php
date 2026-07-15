@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PlanningTaskController;
 use App\Http\Controllers\Api\VendorController;
 use App\Http\Controllers\Api\VendorDashboardController;
 use App\Http\Controllers\Api\VendorRequestController;
+use App\Http\Controllers\Api\WeddingMediaController;
 use App\Http\Controllers\Api\WeddingPlanController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,7 @@ Route::get('/vendors/{vendor}', [VendorController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'profile']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
 
     // Couple planning flows
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -53,6 +55,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('wedding-plans/{weddingPlan}/vendor-requests', [VendorRequestController::class, 'index']);
     Route::post('wedding-plans/{weddingPlan}/vendor-requests', [VendorRequestController::class, 'store']);
+    Route::delete('wedding-plans/{weddingPlan}/vendor-requests/{vendorRequest}', [VendorRequestController::class, 'cancel']);
+
+    Route::get('wedding-plans/{weddingPlan}/media', [WeddingMediaController::class, 'index']);
+    Route::post('wedding-plans/{weddingPlan}/media', [WeddingMediaController::class, 'store']);
+    Route::delete('wedding-plans/{weddingPlan}/media/{medium}', [WeddingMediaController::class, 'destroy']);
 
     // Vendor portal flows
     Route::get('/vendor/dashboard', [VendorDashboardController::class, 'index']);
