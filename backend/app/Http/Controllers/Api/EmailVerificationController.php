@@ -6,14 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Throwable;
 
 class EmailVerificationController extends Controller
 {
     public function resend(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email:rfc,dns'],
         ]);
 
         $key = 'verify-email:'.$validated['email'];
@@ -29,7 +31,19 @@ class EmailVerificationController extends Controller
         $user = User::where('email', $validated['email'])->first();
 
         if ($user && ! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
+            try {
+                $user->sendEmailVerificationNotification();
+            } catch (Throwable $e) {
+                Log::error('Failed to resend verification email.', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'message' => 'Unable to send confirmation email right now. Please try again shortly.',
+                ], 503);
+            }
         }
 
         return response()->json([
