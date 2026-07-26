@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EmailVerificationWebController;
+use App\Http\Controllers\GuestRegistrationController;
 use App\Http\Controllers\RsvpController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,3 +16,6 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationWebController::class, 
 Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->name('rsvp.show');
 Route::get('/rsvp/{token}/accept', [RsvpController::class, 'accept'])->name('rsvp.accept');
 Route::get('/rsvp/{token}/decline', [RsvpController::class, 'decline'])->name('rsvp.decline');
+
+Route::get('/guest-register/{token}', [GuestRegistrationController::class, 'show'])->name('guest-register.show');
+Route::post('/guest-register/{token}', [GuestRegistrationController::class, 'store'])->name('guest-register.store');

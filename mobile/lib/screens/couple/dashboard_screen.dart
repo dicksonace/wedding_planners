@@ -20,8 +20,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppStore>().refreshDashboard();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final store = context.read<AppStore>();
+      await store.refreshDashboard();
+      await store.fetchVendorCategories();
     });
   }
 
@@ -109,6 +111,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
                       ),
+                      if (store.vendorCategories.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        const SectionTitle(title: 'Vendor categories'),
+                        SizedBox(
+                          height: 130,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: store.vendorCategories.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (context, i) {
+                              final cat = store.vendorCategories[i];
+                              final name = cat['name']?.toString() ?? 'Vendor';
+                              return QuickActionChip(
+                                icon: _vendorIcon(cat['icon']?.toString()),
+                                label: name,
+                                imageUrl: cat['image_url']?.toString(),
+                                onTap: () => widget.onNavigate?.call(4),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                     ],
                     const SectionTitle(title: 'Your stats'),
@@ -233,6 +257,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (value == null) return '-';
     final raw = value.toString();
     return raw.length >= 10 ? raw.substring(0, 10) : raw;
+  }
+
+  IconData _vendorIcon(String? key) {
+    switch (key) {
+      case 'restaurant':
+        return Icons.restaurant_rounded;
+      case 'camera':
+        return Icons.camera_alt_rounded;
+      case 'videocam':
+        return Icons.videocam_rounded;
+      case 'celebration':
+        return Icons.celebration_rounded;
+      case 'checkroom':
+        return Icons.checkroom_rounded;
+      case 'dry_cleaning':
+        return Icons.dry_cleaning_rounded;
+      case 'style':
+        return Icons.style_rounded;
+      case 'face':
+        return Icons.face_retouching_natural_rounded;
+      case 'mic':
+        return Icons.mic_rounded;
+      case 'music_note':
+        return Icons.music_note_rounded;
+      case 'location_city':
+        return Icons.location_city_rounded;
+      case 'cake':
+        return Icons.cake_rounded;
+      case 'directions_car':
+        return Icons.directions_car_rounded;
+      case 'mail':
+        return Icons.mail_rounded;
+      default:
+        return Icons.storefront_rounded;
+    }
   }
 
   Widget _overviewRow(IconData icon, String label, String value) {

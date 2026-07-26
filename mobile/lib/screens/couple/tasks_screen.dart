@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/api_client.dart';
@@ -25,7 +26,9 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> _load() async {
     final store = context.read<AppStore>();
     await store.refreshDashboard();
-    if (store.hasPlan) await store.fetchTasks();
+    if (store.hasPlan) {
+      await Future.wait([store.fetchTasks(), store.fetchReminders()]);
+    }
   }
 
   Future<void> _openTaskForm({Map<String, dynamic>? task}) async {
@@ -37,11 +40,58 @@ class _TasksScreenState extends State<TasksScreen> {
     if (saved == true && mounted) await _load();
   }
 
+  Future<void> _openReminderForm({Map<String, dynamic>? reminder}) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ReminderSheet(reminder: reminder),
+    );
+    if (saved == true && mounted) await _load();
+  }
+
   Future<void> _toggleComplete(Map<String, dynamic> task) async {
     final current = task['status'] as String? ?? 'pending';
     final next = current == 'completed' ? 'pending' : 'completed';
     await context.read<AppStore>().updateTask(task['id'] as int, {'status': next});
     if (mounted) await _load();
+  }
+
+  Future<void> _toggleReminderDone(Map<String, dynamic> reminder) async {
+    final done = reminder['is_done'] == true;
+    await context.read<AppStore>().updateReminder(reminder['id'] as int, {'is_done': !done});
+    if (mounted) await _load();
+  }
+
+  void _showAddMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: RoundedRectangleBorder(borderRadius: AppDecor.radiusLg),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.checklist_rounded, color: AppColors.deepGreen),
+              title: const Text('Add planning task'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openTaskForm();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.alarm_rounded, color: AppColors.goldDark),
+              title: const Text('Add reminder / appointment'),
+              subtitle: const Text('Dress fitting, hair, makeup, etc.'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openReminderForm();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -50,7 +100,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
     if (!store.hasPlan) {
       return Scaffold(
-        appBar: const CoupleAppBar(title: 'Tasks'),
+        appBar: const CoupleAppBar(title: 'Tasks & Reminders'),
         floatingActionButton: AppAddFab(
           tooltip: 'Create plan',
           onPressed: () async {
@@ -62,44 +112,137 @@ class _TasksScreenState extends State<TasksScreen> {
         body: const NoPlanPlaceholder(
           icon: Icons.checklist_rounded,
           title: 'Planning tasks',
-          subtitle: 'Create a wedding plan to manage your checklist.',
+          subtitle: 'Create a wedding plan to manage your checklist and reminders.',
         ),
       );
     }
 
     final tasks = store.tasks;
+    final reminders = store.reminders;
+    final loading = store.tasksLoading || store.remindersLoading;
 
     return Scaffold(
-      appBar: const CoupleAppBar(title: 'Tasks'),
+      appBar: const CoupleAppBar(title: 'Tasks & Reminders'),
       floatingActionButton: AppAddFab(
-        tooltip: 'Add task',
-        onPressed: () => _openTaskForm(),
+        tooltip: 'Add task or reminder',
+        onPressed: _showAddMenu,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: RefreshIndicator(
         onRefresh: _load,
-        child: store.tasksLoading
+        child: loading
             ? const Center(child: CircularProgressIndicator())
-            : tasks.isEmpty
-                ? ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
+            : ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                children: [
+                  Row(
                     children: [
-                      const SizedBox(height: 40),
-                      const EmptyState(
-                        icon: Icons.checklist_rounded,
-                        title: 'No tasks yet',
-                        subtitle: 'Add knocking, engagement, traditional and reception checklist items.',
+                      const Expanded(child: SectionTitle(title: 'Reminders')),
+                      TextButton.icon(
+                        onPressed: () => _openReminderForm(),
+                        icon: const Icon(Icons.add_alarm_rounded, size: 18),
+                        label: const Text('Add'),
                       ),
-                      const SizedBox(height: 20),
-                      PrimaryButton(label: 'Add Task', icon: Icons.add, onPressed: () => _openTaskForm()),
                     ],
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-                    itemCount: tasks.length,
-                    itemBuilder: (context, i) {
-                      final task = tasks[i];
+                  ),
+                  if (reminders.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        'Track dress fittings, hairstylist, makeup, and other appointments with date & time.',
+                        style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                      ),
+                    )
+                  else
+                    ...reminders.map((reminder) {
+                      final done = reminder['is_done'] == true;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: AppCard(
+                          onTap: () => _openReminderForm(reminder: reminder),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  done ? Icons.check_circle : Icons.alarm_rounded,
+                                  color: done ? AppColors.deepGreen : AppColors.goldDark,
+                                ),
+                                onPressed: () => _toggleReminderDone(reminder),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      reminder['title'] as String? ?? 'Reminder',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        decoration: done ? TextDecoration.lineThrough : null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatDateTime(reminder['remind_at']),
+                                      style: const TextStyle(color: AppColors.deepGreen, fontWeight: FontWeight.w600, fontSize: 13),
+                                    ),
+                                    if (reminder['category'] != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: _chip(_categoryLabel(reminder['category']?.toString()), AppColors.gold),
+                                      ),
+                                    if (reminder['notes'] != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Text(reminder['notes'] as String, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: AppColors.richRed),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete reminder?'),
+                                      content: Text('Remove "${reminder['title']}"?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await store.deleteReminder(reminder['id'] as int);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Expanded(child: SectionTitle(title: 'Planning tasks')),
+                      TextButton.icon(
+                        onPressed: () => _openTaskForm(),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  if (tasks.isEmpty)
+                    const EmptyState(
+                      icon: Icons.checklist_rounded,
+                      title: 'No tasks yet',
+                      subtitle: 'Add knocking, engagement, traditional and reception checklist items.',
+                    )
+                  else
+                    ...tasks.map((task) {
                       final status = task['status'] as String? ?? 'pending';
                       final isDone = status == 'completed';
 
@@ -170,8 +313,9 @@ class _TasksScreenState extends State<TasksScreen> {
                           ),
                         ),
                       );
-                    },
-                  ),
+                    }),
+                ],
+              ),
       ),
     );
   }
@@ -190,6 +334,163 @@ class _TasksScreenState extends State<TasksScreen> {
   String _formatDate(dynamic value) {
     final raw = value.toString();
     return raw.length >= 10 ? raw.substring(0, 10) : raw;
+  }
+
+  String _formatDateTime(dynamic value) {
+    if (value == null) return '-';
+    final parsed = DateTime.tryParse(value.toString());
+    if (parsed == null) return value.toString();
+    return DateFormat('EEE, MMM d · h:mm a').format(parsed.toLocal());
+  }
+
+  String _categoryLabel(String? key) {
+    switch (key) {
+      case 'fitting':
+        return 'Dress fitting';
+      case 'hair':
+        return 'Hairstylist';
+      case 'makeup':
+        return 'Makeup';
+      case 'venue':
+        return 'Venue';
+      case 'vendor':
+        return 'Vendor';
+      default:
+        return 'Other';
+    }
+  }
+}
+
+class _ReminderSheet extends StatefulWidget {
+  const _ReminderSheet({this.reminder});
+
+  final Map<String, dynamic>? reminder;
+
+  @override
+  State<_ReminderSheet> createState() => _ReminderSheetState();
+}
+
+class _ReminderSheetState extends State<_ReminderSheet> {
+  static const _categories = [
+    ('fitting', 'Dress fitting'),
+    ('hair', 'Hairstylist'),
+    ('makeup', 'Makeup'),
+    ('venue', 'Venue'),
+    ('vendor', 'Vendor'),
+    ('other', 'Other'),
+  ];
+
+  late final TextEditingController _title;
+  late final TextEditingController _notes;
+  late String _category;
+  DateTime _remindAt = DateTime.now().add(const Duration(days: 1));
+  bool _submitting = false;
+  bool get _isEditing => widget.reminder != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final reminder = widget.reminder;
+    _title = TextEditingController(text: reminder?['title'] as String? ?? '');
+    _notes = TextEditingController(text: reminder?['notes'] as String? ?? '');
+    _category = reminder?['category'] as String? ?? 'other';
+    final parsed = DateTime.tryParse(reminder?['remind_at']?.toString() ?? '');
+    if (parsed != null) _remindAt = parsed.toLocal();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _remindAt,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_remindAt),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _remindAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
+  Future<void> _submit() async {
+    if (_title.text.trim().isEmpty) return;
+
+    setState(() => _submitting = true);
+    try {
+      final payload = {
+        'title': _title.text.trim(),
+        'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+        'category': _category,
+        'remind_at': _remindAt.toIso8601String(),
+      };
+
+      final store = context.read<AppStore>();
+      if (_isEditing) {
+        await store.updateReminder(widget.reminder!['id'] as int, payload);
+      } else {
+        await store.addReminder(payload);
+      }
+      if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.richRed),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(_isEditing ? 'Edit Reminder' : 'Add Reminder', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+          TextField(controller: _title, decoration: const InputDecoration(labelText: 'Title *', hintText: 'e.g. Dress fitting')),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _categories.any((c) => c.$1 == _category) ? _category : 'other',
+            decoration: const InputDecoration(labelText: 'Category'),
+            items: _categories.map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2))).toList(),
+            onChanged: (v) => setState(() => _category = v ?? 'other'),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.event_available_rounded, color: AppColors.deepGreen),
+            title: const Text('Date & time'),
+            subtitle: Text(DateFormat('EEE, MMM d · h:mm a').format(_remindAt)),
+            trailing: const Icon(Icons.edit_calendar_rounded),
+            onTap: _pickDateTime,
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: _notes, maxLines: 2, decoration: const InputDecoration(labelText: 'Notes')),
+          const SizedBox(height: 8),
+          PrimaryButton(label: _isEditing ? 'Save Changes' : 'Save Reminder', loading: _submitting, onPressed: _submit),
+        ],
+      ),
+    );
   }
 }
 

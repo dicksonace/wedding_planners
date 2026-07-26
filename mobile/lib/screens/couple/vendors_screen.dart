@@ -210,7 +210,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: store.vendorCategories.map((c) {
+              children: store.vendorCategoryNames.map((c) {
                 return ActionChip(
                   label: Text(c),
                   onPressed: () {
@@ -270,7 +270,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
                         decoration: const InputDecoration(labelText: 'Category', contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                         items: [
                           const DropdownMenuItem(value: null, child: Text('All categories')),
-                          ...store.vendorCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                          ...store.vendorCategoryNames.map((c) => DropdownMenuItem(value: c, child: Text(c))),
                         ],
                         onChanged: (v) {
                           setState(() => _category = v);
@@ -288,6 +288,64 @@ class _VendorsScreenState extends State<VendorsScreen> {
                     ),
                   ],
                 ),
+                if (store.vendorCategories.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 92,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: store.vendorCategories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (context, i) {
+                        final cat = store.vendorCategories[i];
+                        final name = cat['name']?.toString() ?? '';
+                        final selected = _category == name;
+                        final imageUrl = cat['image_url']?.toString();
+                        return InkWell(
+                          onTap: () {
+                            setState(() => _category = selected ? null : name);
+                            _runSearch();
+                          },
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 120,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: selected ? AppColors.deepGreen : Colors.transparent,
+                                width: 2,
+                              ),
+                              image: imageUrl != null && imageUrl.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(imageUrl),
+                                      fit: BoxFit.cover,
+                                      colorFilter: ColorFilter.mode(
+                                        Colors.black.withValues(alpha: selected ? 0.25 : 0.4),
+                                        BlendMode.darken,
+                                      ),
+                                    )
+                                  : null,
+                              color: AppColors.softGreen,
+                            ),
+                            alignment: Alignment.bottomLeft,
+                            padding: const EdgeInsets.all(10),
+                            child: Text(
+                              name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                shadows: [Shadow(blurRadius: 6, color: Colors.black54)],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 PrimaryButton(label: 'Search', icon: Icons.search, onPressed: _runSearch),
               ],

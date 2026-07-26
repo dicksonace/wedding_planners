@@ -182,9 +182,10 @@ class ProfileMenuButton extends StatelessWidget {
 }
 
 class CoupleAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CoupleAppBar({super.key, required this.title});
+  const CoupleAppBar({super.key, required this.title, this.actions});
 
   final String title;
+  final List<Widget>? actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -193,7 +194,10 @@ class CoupleAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title),
-      actions: const [ProfileMenuButton()],
+      actions: [
+        ...?actions,
+        const ProfileMenuButton(),
+      ],
     );
   }
 }
@@ -407,11 +411,12 @@ class GradientHeader extends StatelessWidget {
 }
 
 class QuickActionChip extends StatelessWidget {
-  const QuickActionChip({super.key, required this.icon, required this.label, required this.onTap});
+  const QuickActionChip({super.key, required this.icon, required this.label, required this.onTap, this.imageUrl});
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -422,17 +427,35 @@ class QuickActionChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppDecor.radiusMd,
         child: Ink(
-          width: 96,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+          width: imageUrl != null ? 118 : 96,
+          padding: EdgeInsets.symmetric(vertical: imageUrl != null ? 8 : 14, horizontal: 10),
           decoration: BoxDecoration(
             borderRadius: AppDecor.radiusMd,
             boxShadow: AppDecor.cardShadow,
           ),
           child: Column(
             children: [
-              Icon(icon, color: AppColors.deepGreen),
+              if (imageUrl != null && imageUrl!.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    imageUrl!,
+                    width: 96,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(icon, color: AppColors.deepGreen),
+                  ),
+                )
+              else
+                Icon(icon, color: AppColors.deepGreen),
               const SizedBox(height: 8),
-              Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+              ),
             ],
           ),
         ),

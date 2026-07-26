@@ -1,5 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../api/api_client.dart';
 import '../../store/app_store.dart';
@@ -44,12 +48,116 @@ class _GuestsScreenState extends State<GuestsScreen> {
     if (added == true && mounted) await _load();
   }
 
+  Future<void> _showShareRegistration() async {
+    final store = context.read<AppStore>();
+    if (!store.hasPlan) return;
+
+    try {
+      final reg = store.guestRegistration ?? await store.fetchGuestRegistration();
+      final url = reg['url']?.toString() ?? '';
+      if (!mounted || url.isEmpty) return;
+
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _RegistrationShareSheet(url: url, qrImageUrl: reg['qr_url']?.toString()),
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.richRed),
+        );
+      }
+    }
+  }
+
+  Future<void> _importGuestList() async {
+    final store = context.read<AppStore>();
+    if (!store.hasPlan) {
+      final created = await openCreatePlanScreen(context);
+      if (created != true || !mounted) return;
+      await _load();
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['csv', 'txt'],
+      withData: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final path = result.files.single.path;
+    if (path == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not read that file. Try exporting as CSV.'), backgroundColor: AppColors.richRed),
+        );
+      }
+      return;
+    }
+
+    try {
+      final response = await store.importGuests(path);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message']?.toString() ?? 'Guest list imported')),
+      );
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.richRed),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareGuestInvite(Map<String, dynamic> guest) async {
+    final store = context.read<AppStore>();
+    try {
+      var url = guest['invite_url']?.toString();
+      if (url == null || url.isEmpty) {
+        final link = await store.fetchGuestInviteLink(guest['id'] as int);
+        url = link['invite_url']?.toString();
+      }
+      if (url == null || url.isEmpty) return;
+
+      final name = guest['name']?.toString() ?? 'Guest';
+      await Share.share(
+        'Hi $name — please confirm your attendance here:\n$url',
+        subject: 'Wedding invitation',
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.richRed),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<AppStore>();
 
     return Scaffold(
-      appBar: const CoupleAppBar(title: 'Guest List'),
+      appBar: CoupleAppBar(
+        title: 'Guest List',
+        actions: store.hasPlan
+            ? [
+                IconButton(
+                  tooltip: 'Import CSV',
+                  icon: const Icon(Icons.upload_file_rounded),
+                  onPressed: _importGuestList,
+                ),
+                IconButton(
+                  tooltip: 'Share registration link',
+                  icon: const Icon(Icons.qr_code_2_rounded),
+                  onPressed: _showShareRegistration,
+                ),
+              ]
+            : null,
+      ),
       floatingActionButton: AppAddFab(
         tooltip: store.hasPlan ? 'Add guest' : 'Create plan',
         onPressed: _openAddGuest,
@@ -78,48 +186,154 @@ class _GuestsScreenState extends State<GuestsScreen> {
               )
             : store.guestsLoading
                 ? const Center(child: CircularProgressIndicator())
-                : store.guests.isEmpty
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(20),
-                        children: [
-                          const SizedBox(height: 40),
-                          const EmptyState(
+                : ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+                    children: [
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Guest registration', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Share a link or QR code so guests can register and confirm attendance. Or upload a CSV guest list.',
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: PrimaryButton(
+                                    label: 'Share / QR',
+                                    icon: Icons.qr_code_2_rounded,
+                                    onPressed: _showShareRegistration,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _importGuestList,
+                                    icon: const Icon(Icons.upload_file_rounded),
+                                    label: const Text('Import CSV'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (store.guests.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 24),
+                          child: EmptyState(
                             icon: Icons.people_alt_rounded,
                             title: 'No guests yet',
-                            subtitle: 'Add family and friends to your wedding guest list.',
+                            subtitle: 'Add guests manually, import a CSV, or share your registration link.',
                           ),
-                          const SizedBox(height: 20),
-                          PrimaryButton(
-                            label: 'Add Guest',
-                            icon: Icons.person_add,
-                            onPressed: _openAddGuest,
-                          ),
-                        ],
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                        itemCount: store.guests.length,
-                        itemBuilder: (context, i) {
-                          final guest = store.guests[i];
-                          return _GuestCard(
+                        )
+                      else
+                        ...store.guests.map(
+                          (guest) => _GuestCard(
                             guest: guest,
                             onDelete: () async {
                               await store.deleteGuest(guest['id'] as int);
                             },
-                          );
-                        },
-                      ),
+                            onShare: () => _shareGuestInvite(guest),
+                          ),
+                        ),
+                    ],
+                  ),
+      ),
+    );
+  }
+}
+
+class _RegistrationShareSheet extends StatelessWidget {
+  const _RegistrationShareSheet({required this.url, this.qrImageUrl});
+
+  final String url;
+  final String? qrImageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Guest registration link', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          const Text(
+            'Guests scan this QR or open the link to register and confirm attendance.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.softGreen),
+            ),
+            child: QrImageView(
+              data: url,
+              size: 200,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          if (qrImageUrl != null && qrImageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Backup QR image available online', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+          ],
+          const SizedBox(height: 16),
+          SelectableText(url, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: url));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Link copied')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Copy'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: PrimaryButton(
+                  label: 'Share',
+                  icon: Icons.ios_share_rounded,
+                  onPressed: () => Share.share(
+                    'You\'re invited — please register and confirm attendance:\n$url',
+                    subject: 'Wedding guest registration',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
 class _GuestCard extends StatelessWidget {
-  const _GuestCard({required this.guest, required this.onDelete});
+  const _GuestCard({required this.guest, required this.onDelete, required this.onShare});
 
   final Map<String, dynamic> guest;
   final VoidCallback onDelete;
+  final VoidCallback onShare;
 
   Color _rsvpColor(String? status) {
     switch (status) {
@@ -172,6 +386,11 @@ class _GuestCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: 'Share invite link',
+              icon: const Icon(Icons.share_rounded, color: AppColors.deepGreen),
+              onPressed: onShare,
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppColors.richRed),

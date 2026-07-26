@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\VendorDashboardController;
 use App\Http\Controllers\Api\VendorRequestController;
 use App\Http\Controllers\Api\WeddingMediaController;
 use App\Http\Controllers\Api\WeddingPlanController;
+use App\Http\Controllers\Api\WeddingReminderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => response()->json([
@@ -39,9 +40,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('wedding-plans/{weddingPlan}/guests', [GuestController::class, 'index']);
     Route::post('wedding-plans/{weddingPlan}/guests', [GuestController::class, 'store']);
+    Route::post('wedding-plans/{weddingPlan}/guests/import', [GuestController::class, 'import']);
+    Route::get('wedding-plans/{weddingPlan}/guest-registration', [GuestController::class, 'registrationLink']);
     Route::put('wedding-plans/{weddingPlan}/guests/{guest}', [GuestController::class, 'update']);
     Route::delete('wedding-plans/{weddingPlan}/guests/{guest}', [GuestController::class, 'destroy']);
     Route::post('wedding-plans/{weddingPlan}/guests/{guest}/invite', [GuestController::class, 'sendInvitation']);
+    Route::get('wedding-plans/{weddingPlan}/guests/{guest}/invite-link', [GuestController::class, 'inviteLink']);
+
+    Route::get('wedding-plans/{weddingPlan}/reminders', [WeddingReminderController::class, 'index']);
+    Route::post('wedding-plans/{weddingPlan}/reminders', [WeddingReminderController::class, 'store']);
+    Route::put('wedding-plans/{weddingPlan}/reminders/{reminder}', [WeddingReminderController::class, 'update']);
+    Route::delete('wedding-plans/{weddingPlan}/reminders/{reminder}', [WeddingReminderController::class, 'destroy']);
 
     Route::get('wedding-plans/{weddingPlan}/budget-items', [BudgetItemController::class, 'index']);
     Route::post('wedding-plans/{weddingPlan}/budget-items', [BudgetItemController::class, 'store']);

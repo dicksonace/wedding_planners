@@ -16,10 +16,13 @@ class AppStore extends ChangeNotifier {
   Map<String, dynamic>? coupleDashboard;
   Map<String, dynamic>? vendorDashboard;
   List<Map<String, dynamic>> vendors = [];
-  List<String> vendorCategories = [];
+  List<Map<String, dynamic>> vendorCategories = [];
   bool vendorsLoading = false;
   List<Map<String, dynamic>> guests = [];
+  Map<String, dynamic>? guestRegistration;
   bool guestsLoading = false;
+  List<Map<String, dynamic>> reminders = [];
+  bool remindersLoading = false;
   List<Map<String, dynamic>> budgetItems = [];
   Map<String, dynamic>? budgetSummary;
   bool budgetLoading = false;
@@ -107,6 +110,8 @@ class AppStore extends ChangeNotifier {
     vendorDashboard = null;
     vendors = [];
     guests = [];
+    guestRegistration = null;
+    reminders = [];
     budgetItems = [];
     budgetSummary = null;
     tasks = [];
@@ -124,6 +129,7 @@ class AppStore extends ChangeNotifier {
     final planId = activePlanId;
     if (planId == null) {
       guests = [];
+      guestRegistration = null;
       notifyListeners();
       return;
     }
@@ -131,11 +137,60 @@ class AppStore extends ChangeNotifier {
     guestsLoading = true;
     notifyListeners();
     try {
-      guests = await _api.getList('/wedding-plans/$planId/guests');
+      final data = await _api.get('/wedding-plans/$planId/guests');
+      final items = data['data'];
+      if (items is List) {
+        guests = items.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      } else {
+        guests = [];
+      }
+      final reg = data['registration'];
+      guestRegistration = reg is Map ? Map<String, dynamic>.from(reg) : null;
     } finally {
       guestsLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<Map<String, dynamic>> fetchGuestRegistration({bool regenerate = false}) async {
+    final planId = activePlanId;
+    if (planId == null) {
+      throw ApiException('Create a wedding plan first.');
+    }
+    final data = await _api.get(
+      '/wedding-plans/$planId/guest-registration',
+      query: regenerate ? {'regenerate': true} : null,
+    );
+    final reg = data['data'];
+    guestRegistration = reg is Map ? Map<String, dynamic>.from(reg) : null;
+    notifyListeners();
+    return guestRegistration ?? {};
+  }
+
+  Future<Map<String, dynamic>> fetchGuestInviteLink(int guestId) async {
+    final planId = activePlanId;
+    if (planId == null) {
+      throw ApiException('Create a wedding plan first.');
+    }
+    final data = await _api.get('/wedding-plans/$planId/guests/$guestId/invite-link');
+    final payload = data['data'];
+    return payload is Map ? Map<String, dynamic>.from(payload) : {};
+  }
+
+  Future<Map<String, dynamic>> importGuests(String filePath) async {
+    final planId = activePlanId;
+    if (planId == null) {
+      throw ApiException('Create a wedding plan before importing guests.');
+    }
+    final result = await _api.uploadMultipart(
+      '/wedding-plans/$planId/guests/import',
+      filePath: filePath,
+      fileField: 'file',
+      fields: const {},
+    );
+    await fetchGuests();
+    await refreshDashboard();
+    return result;
   }
 
   Future<void> addGuest(Map<String, dynamic> payload) async {
@@ -154,6 +209,47 @@ class AppStore extends ChangeNotifier {
     await _api.delete('/wedding-plans/$planId/guests/$guestId');
     await fetchGuests();
     await refreshDashboard();
+  }
+
+  Future<void> fetchReminders() async {
+    final planId = activePlanId;
+    if (planId == null) {
+      reminders = [];
+      notifyListeners();
+      return;
+    }
+
+    remindersLoading = true;
+    notifyListeners();
+    try {
+      reminders = await _api.getList('/wedding-plans/$planId/reminders');
+    } finally {
+      remindersLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> addReminder(Map<String, dynamic> payload) async {
+    final planId = activePlanId;
+    if (planId == null) {
+      throw ApiException('Create a wedding plan before adding reminders.');
+    }
+    await _api.post('/wedding-plans/$planId/reminders', body: payload);
+    await fetchReminders();
+  }
+
+  Future<void> updateReminder(int reminderId, Map<String, dynamic> payload) async {
+    final planId = activePlanId;
+    if (planId == null) return;
+    await _api.put('/wedding-plans/$planId/reminders/$reminderId', body: payload);
+    await fetchReminders();
+  }
+
+  Future<void> deleteReminder(int reminderId) async {
+    final planId = activePlanId;
+    if (planId == null) return;
+    await _api.delete('/wedding-plans/$planId/reminders/$reminderId');
+    await fetchReminders();
   }
 
   Future<void> fetchBudgetItems() async {
@@ -381,11 +477,17 @@ class AppStore extends ChangeNotifier {
   Future<void> fetchVendorCategories() async {
     final data = await _api.get('/vendors/categories');
     final list = data['data'];
-    if (list is List) {
-      vendorCategories = list.map((e) => e.toString()).toList();
-      notifyListeners();
-    }
+    if (list is! List) return;
+
+    vendorCategories = list.map((e) {
+      if (e is Map) return Map<String, dynamic>.from(e);
+      return <String, dynamic>{'name': e.toString(), 'icon': 'storefront', 'image_url': null};
+    }).toList();
+    notifyListeners();
   }
+
+  List<String> get vendorCategoryNames =>
+      vendorCategories.map((c) => c['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
 
   Future<void> searchVendors({String? search, String? category, String? location}) async {
     vendorsLoading = true;

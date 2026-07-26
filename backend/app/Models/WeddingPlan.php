@@ -20,6 +20,7 @@ class WeddingPlan extends Model
         'ceremony_types',
         'status',
         'notes',
+        'guest_registration_token',
     ];
 
     protected function casts(): array
@@ -39,6 +40,11 @@ class WeddingPlan extends Model
     public function guests(): HasMany
     {
         return $this->hasMany(Guest::class);
+    }
+
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(WeddingReminder::class);
     }
 
     public function budgetItems(): HasMany
