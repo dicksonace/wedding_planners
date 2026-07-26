@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Concerns\AuthorizesCouple;
 use App\Mail\GuestInvitationMail;
 use App\Models\Guest;
 use App\Models\WeddingPlan;
+use App\Services\GuestListImporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -152,111 +153,29 @@ class GuestController extends Controller
         $this->authorizePlan($request, $weddingPlan);
 
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls,docx,doc', 'max:10240'],
         ]);
 
-        $file = $request->file('file');
-        $extension = strtolower($file->getClientOriginalExtension());
-        $created = 0;
-        $skipped = 0;
-        $errors = [];
+        $importer = new GuestListImporter;
+        $extracted = $importer->extractRows($request->file('file'));
 
-        if (in_array($extension, ['xlsx', 'xls'], true)) {
-            return response()->json([
-                'message' => 'Please export your Excel file as CSV (Save As → CSV) and upload that. Word files should also be converted to CSV.',
-            ], 422);
+        if ($extracted['error']) {
+            return response()->json(['message' => $extracted['error']], 422);
         }
 
-        $handle = fopen($file->getRealPath(), 'r');
-        if ($handle === false) {
-            return response()->json(['message' => 'Could not read uploaded file.'], 422);
+        $mapped = $importer->mapGuests($extracted['rows']);
+
+        foreach ($mapped['guests'] as $guestData) {
+            $weddingPlan->guests()->create($guestData);
         }
-
-        $header = null;
-        $rowNum = 0;
-        while (($row = fgetcsv($handle)) !== false) {
-            $rowNum++;
-            if ($row === [null] || $row === false) {
-                continue;
-            }
-
-            $cells = array_map(fn ($c) => trim((string) $c), $row);
-            if ($header === null) {
-                $header = array_map(fn ($h) => Str::of($h)->lower()->replace(' ', '_')->toString(), $cells);
-                // If first row looks like data (has a name-like value and no header keywords), treat as data
-                $joined = implode(',', $header);
-                if (! str_contains($joined, 'name') && ! str_contains($joined, 'email') && ! str_contains($joined, 'phone')) {
-                    $mapped = $this->mapImportRow(['name', 'email', 'phone', 'side'], $cells);
-                    if ($mapped) {
-                        $weddingPlan->guests()->create($mapped);
-                        $created++;
-                    } else {
-                        $skipped++;
-                    }
-                    $header = ['name', 'email', 'phone', 'side'];
-                }
-                continue;
-            }
-
-            $mapped = $this->mapImportRow($header, $cells);
-            if (! $mapped) {
-                $skipped++;
-                $errors[] = "Row {$rowNum}: missing name";
-                continue;
-            }
-
-            $weddingPlan->guests()->create($mapped);
-            $created++;
-        }
-        fclose($handle);
 
         return response()->json([
-            'message' => "Imported {$created} guest(s). Skipped {$skipped}.",
-            'created' => $created,
-            'skipped' => $skipped,
-            'errors' => array_slice($errors, 0, 10),
+            'message' => "Imported {$mapped['created']} guest(s). Skipped {$mapped['skipped']}.",
+            'created' => $mapped['created'],
+            'skipped' => $mapped['skipped'],
+            'errors' => $mapped['errors'],
             'data' => $weddingPlan->guests()->latest()->get(),
         ]);
-    }
-
-    /**
-     * @param  list<string>  $header
-     * @param  list<string>  $cells
-     * @return array<string, mixed>|null
-     */
-    private function mapImportRow(array $header, array $cells): ?array
-    {
-        $assoc = [];
-        foreach ($header as $i => $key) {
-            $assoc[$key] = $cells[$i] ?? '';
-        }
-
-        $name = $assoc['name'] ?? $assoc['full_name'] ?? $assoc['guest_name'] ?? ($cells[0] ?? '');
-        $name = trim((string) $name);
-        if ($name === '') {
-            return null;
-        }
-
-        $side = strtolower((string) ($assoc['side'] ?? 'both'));
-        if (! in_array($side, ['bride', 'groom', 'both'], true)) {
-            $side = 'both';
-        }
-
-        $rsvp = strtolower((string) ($assoc['rsvp'] ?? $assoc['rsvp_status'] ?? 'pending'));
-        if (! in_array($rsvp, ['pending', 'confirmed', 'declined'], true)) {
-            $rsvp = 'pending';
-        }
-
-        return [
-            'name' => $name,
-            'email' => ($assoc['email'] ?? '') !== '' ? $assoc['email'] : null,
-            'phone' => ($assoc['phone'] ?? $assoc['mobile'] ?? '') !== ''
-                ? ($assoc['phone'] ?? $assoc['mobile'])
-                : null,
-            'side' => $side,
-            'rsvp_status' => $rsvp,
-            'plus_one' => in_array(strtolower((string) ($assoc['plus_one'] ?? '')), ['1', 'yes', 'true', 'y'], true),
-        ];
     }
 
     /**

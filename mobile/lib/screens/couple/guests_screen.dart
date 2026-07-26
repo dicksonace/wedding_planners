@@ -81,7 +81,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['csv', 'txt'],
+      allowedExtensions: const ['csv', 'txt', 'xlsx', 'xls', 'docx', 'doc'],
       withData: false,
     );
     if (result == null || result.files.isEmpty) return;
@@ -146,7 +146,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
         actions: store.hasPlan
             ? [
                 IconButton(
-                  tooltip: 'Import CSV',
+                  tooltip: 'Import guest list',
                   icon: const Icon(Icons.upload_file_rounded),
                   onPressed: _importGuestList,
                 ),
@@ -197,7 +197,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                             const Text('Guest registration', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                             const SizedBox(height: 6),
                             const Text(
-                              'Share a link or QR code so guests can register and confirm attendance. Or upload a CSV guest list.',
+                              'Share a link or QR code so guests can register and confirm attendance. Or upload an Excel (.xlsx), Word (.docx), or CSV guest list.',
                               style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                             ),
                             const SizedBox(height: 14),
@@ -215,7 +215,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                                   child: OutlinedButton.icon(
                                     onPressed: _importGuestList,
                                     icon: const Icon(Icons.upload_file_rounded),
-                                    label: const Text('Import CSV'),
+                                    label: const Text('Import list'),
                                   ),
                                 ),
                               ],
@@ -230,7 +230,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                           child: EmptyState(
                             icon: Icons.people_alt_rounded,
                             title: 'No guests yet',
-                            subtitle: 'Add guests manually, import a CSV, or share your registration link.',
+                            subtitle: 'Add guests manually, import Excel/Word/CSV, or share your registration link.',
                           ),
                         )
                       else

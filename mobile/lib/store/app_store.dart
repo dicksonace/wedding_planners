@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../api/api_client.dart';
 import '../models/user.dart';
+import '../services/reminder_notification_service.dart';
 
 class AppStore extends ChangeNotifier {
   AppStore({ApiClient? api}) : _api = api ?? ApiClient();
@@ -53,6 +54,9 @@ class AppStore extends ChangeNotifier {
         final data = await _api.get('/profile');
         _user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
         await refreshDashboard();
+        if (_user?.isCouple == true && hasPlan) {
+          await fetchReminders();
+        }
       } catch (_) {
         await _api.clearToken();
         _user = null;
@@ -72,6 +76,9 @@ class AppStore extends ChangeNotifier {
       await _api.saveToken(data['token'] as String);
       _user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
       await refreshDashboard();
+      if (_user?.isCouple == true && hasPlan) {
+        await fetchReminders();
+      }
       _error = null;
     } on ApiException catch (e) {
       _error = e.message;
@@ -117,6 +124,7 @@ class AppStore extends ChangeNotifier {
     tasks = [];
     vendorRequests = [];
     weddingMedia = [];
+    await ReminderNotificationService.instance.cancelAll();
     notifyListeners();
   }
 
@@ -223,6 +231,7 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
     try {
       reminders = await _api.getList('/wedding-plans/$planId/reminders');
+      await ReminderNotificationService.instance.syncReminders(reminders);
     } finally {
       remindersLoading = false;
       notifyListeners();
@@ -234,6 +243,7 @@ class AppStore extends ChangeNotifier {
     if (planId == null) {
       throw ApiException('Create a wedding plan before adding reminders.');
     }
+    await ReminderNotificationService.instance.requestPermissions();
     await _api.post('/wedding-plans/$planId/reminders', body: payload);
     await fetchReminders();
   }
@@ -248,6 +258,7 @@ class AppStore extends ChangeNotifier {
   Future<void> deleteReminder(int reminderId) async {
     final planId = activePlanId;
     if (planId == null) return;
+    await ReminderNotificationService.instance.cancel(reminderId);
     await _api.delete('/wedding-plans/$planId/reminders/$reminderId');
     await fetchReminders();
   }

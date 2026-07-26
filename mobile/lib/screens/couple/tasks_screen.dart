@@ -150,7 +150,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     const Padding(
                       padding: EdgeInsets.only(bottom: 16),
                       child: Text(
-                        'Track dress fittings, hairstylist, makeup, and other appointments with date & time.',
+                        'Track dress fittings, hairstylist, makeup, and other appointments. You’ll get a phone notification at the date & time (plus a 1-hour heads-up).',
                         style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                       ),
                     )

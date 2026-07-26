@@ -3,11 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'router/app_router.dart';
+import 'services/reminder_notification_service.dart';
 import 'store/app_store.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ReminderNotificationService.instance.init();
   final store = AppStore();
   final router = AppRouter.create(store);
   runApp(
