@@ -8,9 +8,9 @@ use App\Mail\GuestInvitationMail;
 use App\Models\Guest;
 use App\Models\WeddingPlan;
 use App\Services\GuestListImporter;
+use App\Support\AppMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class GuestController extends Controller
@@ -56,12 +56,15 @@ class GuestController extends Controller
 
         $guest = $weddingPlan->guests()->create($validated);
 
+        $invitationSent = false;
         if ($sendInvitation && $guest->email) {
-            $this->dispatchInvitation($guest);
+            $invitationSent = $this->dispatchInvitation($guest);
         }
 
         return response()->json([
-            'message' => 'Guest added successfully.',
+            'message' => $invitationSent
+                ? 'Guest added and invitation email sent.'
+                : 'Guest added successfully.',
             'data' => $guest->fresh(),
         ], 201);
     }
@@ -110,7 +113,11 @@ class GuestController extends Controller
             return response()->json(['message' => 'Guest email is required to send an invitation.'], 422);
         }
 
-        $this->dispatchInvitation($guest);
+        if (! $this->dispatchInvitation($guest)) {
+            return response()->json([
+                'message' => 'Unable to send the invitation email right now. Please try again shortly.',
+            ], 503);
+        }
 
         return response()->json([
             'message' => 'Invitation email sent successfully.',
@@ -198,7 +205,7 @@ class GuestController extends Controller
         ];
     }
 
-    private function dispatchInvitation(Guest $guest): void
+    private function dispatchInvitation(Guest $guest): bool
     {
         $guest->load('weddingPlan');
         $token = $guest->ensureInvitationToken();
@@ -207,9 +214,16 @@ class GuestController extends Controller
         $acceptUrl = url("/rsvp/{$token}/accept");
         $declineUrl = url("/rsvp/{$token}/decline");
 
-        Mail::to($guest->email)->send(new GuestInvitationMail($guest, $rsvpUrl, $acceptUrl, $declineUrl));
+        $sent = AppMail::send(
+            $guest->email,
+            new GuestInvitationMail($guest, $rsvpUrl, $acceptUrl, $declineUrl),
+        );
 
-        $guest->update(['invitation_sent_at' => now()]);
+        if ($sent) {
+            $guest->update(['invitation_sent_at' => now()]);
+        }
+
+        return $sent;
     }
 
     private function authorizePlan(Request $request, WeddingPlan $weddingPlan): void

@@ -14,6 +14,7 @@ class WeddingReminder extends Model
         'category',
         'remind_at',
         'is_done',
+        'email_sent_at',
     ];
 
     protected function casts(): array
@@ -21,6 +22,7 @@ class WeddingReminder extends Model
         return [
             'remind_at' => 'datetime',
             'is_done' => 'boolean',
+            'email_sent_at' => 'datetime',
         ];
     }
 

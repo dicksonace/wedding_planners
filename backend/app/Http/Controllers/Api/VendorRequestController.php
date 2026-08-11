@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Concerns\AuthorizesCouple;
+use App\Mail\VendorRequestReceivedMail;
+use App\Mail\VendorRequestRespondedMail;
 use App\Models\AppNotification;
 use App\Models\Vendor;
 use App\Models\VendorRequest;
 use App\Models\WeddingPlan;
+use App\Support\AppMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -55,6 +58,7 @@ class VendorRequestController extends Controller
         ]);
 
         $vendor = Vendor::with('user')->findOrFail($validated['vendor_id']);
+        $vendorRequest->load(['vendor.user', 'weddingPlan', 'couple']);
 
         if ($vendor->user) {
             AppNotification::create([
@@ -64,6 +68,8 @@ class VendorRequestController extends Controller
                 'message' => "{$request->user()->name} sent a planning request for {$weddingPlan->title}.",
                 'type' => 'vendor_request',
             ]);
+
+            AppMail::send($vendor->user->email, new VendorRequestReceivedMail($vendorRequest));
         }
 
         return response()->json([
@@ -124,6 +130,7 @@ class VendorRequestController extends Controller
         }
 
         $vendorRequest->update($updates);
+        $vendorRequest->load(['vendor.user', 'weddingPlan', 'couple']);
 
         AppNotification::create([
             'user_id' => $vendorRequest->couple_id,
@@ -134,6 +141,8 @@ class VendorRequestController extends Controller
                 : 'Your vendor request was declined.',
             'type' => 'vendor_response',
         ]);
+
+        AppMail::send($vendorRequest->couple?->email, new VendorRequestRespondedMail($vendorRequest));
 
         return response()->json([
             'message' => 'Response submitted successfully.',

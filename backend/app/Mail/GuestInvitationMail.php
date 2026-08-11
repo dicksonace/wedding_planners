@@ -3,15 +3,12 @@
 namespace App\Mail;
 
 use App\Models\Guest;
-use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
 class GuestInvitationMail extends Mailable
 {
-    use Queueable, SerializesModels;
 
     public function __construct(
         public Guest $guest,
