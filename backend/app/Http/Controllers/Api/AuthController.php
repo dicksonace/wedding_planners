@@ -53,26 +53,25 @@ class AuthController extends Controller
             ]);
         }
 
+        $mailSent = false;
         try {
             $user->sendEmailVerificationNotification();
+            $mailSent = true;
         } catch (Throwable $e) {
             Log::error('Failed to send registration verification email.', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'error' => $e->getMessage(),
             ]);
-
-            return response()->json([
-                'message' => 'Registration succeeded, but we could not send your confirmation email right now. Please try resending verification shortly.',
-                'email_verification_required' => true,
-                'email' => $user->email,
-            ], 202);
         }
 
         return response()->json([
-            'message' => 'Registration successful. Please check your email to verify your account before signing in.',
+            'message' => $mailSent
+                ? 'Registration successful. Please check your email to verify your account before signing in.'
+                : 'Registration succeeded, but we could not send your confirmation email right now. Please try resending verification shortly.',
             'email_verification_required' => true,
             'email' => $user->email,
+            'email_sent' => $mailSent,
         ], 201);
     }
 
