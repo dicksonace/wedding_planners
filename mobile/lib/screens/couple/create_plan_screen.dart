@@ -72,10 +72,10 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
         'wedding_date': _date.text.trim().isEmpty ? null : _date.text.trim(),
         'location': _location.text.trim().isEmpty ? null : _location.text.trim(),
         'region': _region.text.trim().isEmpty ? null : _region.text.trim(),
-        'total_budget': _budget.text.trim().isEmpty ? null : double.tryParse(_budget.text.trim()),
+        'total_budget' => _budget.text.trim().isEmpty ? 0 : (double.tryParse(_budget.text.trim()) ?? 0),
         'ceremony_types': _ceremonies.toList(),
         'status': 'planning',
-        'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+        if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
       });
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {

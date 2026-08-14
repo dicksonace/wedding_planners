@@ -43,7 +43,7 @@ class WeddingPlanController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $plan = $request->user()->weddingPlans()->create($validated);
+        $plan = $request->user()->weddingPlans()->create($this->planAttributes($validated, creating: true));
 
         return response()->json([
             'message' => 'Wedding plan created successfully.',
@@ -80,7 +80,7 @@ class WeddingPlanController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $weddingPlan->update($validated);
+        $weddingPlan->update($this->planAttributes($validated));
 
         return response()->json([
             'message' => 'Wedding plan updated successfully.',
@@ -100,5 +100,28 @@ class WeddingPlanController extends Controller
     private function authorizePlan(Request $request, WeddingPlan $weddingPlan): void
     {
         abort_if($weddingPlan->user_id !== $request->user()->id, 403, 'Unauthorized.');
+    }
+
+    /**
+     * Hostinger MySQL rejects NULL on total_budget even though the column has a default.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function planAttributes(array $validated, bool $creating = false): array
+    {
+        if ($creating || array_key_exists('total_budget', $validated)) {
+            $validated['total_budget'] = round((float) ($validated['total_budget'] ?? 0), 2);
+        }
+
+        if ($creating || array_key_exists('ceremony_types', $validated)) {
+            $validated['ceremony_types'] = array_values($validated['ceremony_types'] ?? []);
+        }
+
+        if ($creating && blank($validated['status'] ?? null)) {
+            $validated['status'] = 'planning';
+        }
+
+        return $validated;
     }
 }
