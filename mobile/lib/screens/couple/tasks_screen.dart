@@ -239,7 +239,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     const EmptyState(
                       icon: Icons.checklist_rounded,
                       title: 'No tasks yet',
-                      subtitle: 'Add knocking, engagement, traditional and reception checklist items.',
+                      subtitle: 'Add engagement, traditional, church and reception checklist items.',
                     )
                   else
                     ...tasks.map((task) {
@@ -506,7 +506,7 @@ class _TaskSheet extends StatefulWidget {
 class _TaskSheetState extends State<_TaskSheet> {
   static const _statuses = ['pending', 'in_progress', 'completed'];
   static const _priorities = ['low', 'medium', 'high'];
-  static const _ceremonies = ['knocking', 'engagement', 'traditional', 'church', 'reception'];
+  static const _ceremonies = ['engagement', 'traditional', 'church', 'court', 'reception'];
 
   late final TextEditingController _title;
   late final TextEditingController _description;

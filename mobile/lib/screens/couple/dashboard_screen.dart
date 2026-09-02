@@ -77,7 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const EmptyState(
                           icon: Icons.celebration_rounded,
                           title: 'Start your journey',
-                          subtitle: 'Create your wedding plan with knocking, engagement, traditional, church and reception details.',
+                          subtitle: 'Create your wedding plan with engagement, traditional, church, court and reception details.',
                         ),
                         const SizedBox(height: 16),
                         PrimaryButton(

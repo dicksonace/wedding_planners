@@ -5,6 +5,8 @@ import '../../api/api_client.dart';
 import '../../store/app_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common_widgets.dart';
+import '../../widgets/location_autocomplete_field.dart';
+import '../../widgets/region_autocomplete_field.dart';
 
 class CreatePlanScreen extends StatefulWidget {
   const CreatePlanScreen({super.key});
@@ -26,7 +28,6 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
   bool _submitting = false;
 
   static const _ceremonyOptions = [
-    'knocking',
     'engagement',
     'traditional',
     'church',
@@ -72,7 +73,7 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
         'wedding_date': _date.text.trim().isEmpty ? null : _date.text.trim(),
         'location': _location.text.trim().isEmpty ? null : _location.text.trim(),
         'region': _region.text.trim().isEmpty ? null : _region.text.trim(),
-        'total_budget' => _budget.text.trim().isEmpty ? 0 : (double.tryParse(_budget.text.trim()) ?? 0),
+        'total_budget': _budget.text.trim().isEmpty ? 0 : (double.tryParse(_budget.text.trim()) ?? 0),
         'ceremony_types': _ceremonies.toList(),
         'status': 'planning',
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
@@ -119,9 +120,16 @@ class _CreatePlanScreenState extends State<CreatePlanScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(controller: _location, decoration: const InputDecoration(labelText: 'Venue / location')),
+            LocationAutocompleteField(
+              controller: _location,
+              onPlaceSelected: (place) {
+                if (place.region != null && place.region!.isNotEmpty) {
+                  _region.text = place.region!;
+                }
+              },
+            ),
             const SizedBox(height: 12),
-            TextField(controller: _region, decoration: const InputDecoration(labelText: 'Region')),
+            RegionAutocompleteField(controller: _region),
             const SizedBox(height: 12),
             TextField(
               controller: _budget,

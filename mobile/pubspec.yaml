@@ -1,7 +1,7 @@
 name: wedplan_ghana
 description: WedPlan Ghana — marriage planning mobile app.
 publish_to: 'none'
-version: 2.0.0+1
+version: 2.0.1+2
 
 environment:
   sdk: ^3.11.4

@@ -75,7 +75,7 @@ class DemoDataSeeder extends Seeder
                 'location' => 'Accra Conference Centre',
                 'region' => 'Greater Accra',
                 'total_budget' => 50000,
-                'ceremony_types' => ['knocking', 'engagement', 'traditional', 'church', 'reception'],
+                'ceremony_types' => ['engagement', 'traditional', 'church', 'reception'],
                 'status' => 'planning',
                 'notes' => 'Include family introductions and dowry coordination.',
             ]
@@ -103,7 +103,7 @@ class DemoDataSeeder extends Seeder
 
         PlanningTask::updateOrCreate(
             ['wedding_plan_id' => $plan->id, 'title' => 'Knocking ceremony preparation'],
-            ['description' => 'Prepare drinks, gifts, and family list.', 'due_date' => '2026-06-20', 'status' => 'in_progress', 'priority' => 'high', 'ceremony_type' => 'knocking']
+            ['description' => 'Prepare drinks, gifts, and family list.', 'due_date' => '2026-06-20', 'status' => 'in_progress', 'priority' => 'high', 'ceremony_type' => 'engagement']
         );
 
         PlanningTask::updateOrCreate(
